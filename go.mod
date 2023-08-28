@@ -1,4 +1,4 @@
-module github.com/willscott/cassiopeia
+module github.com/filecoin-saturn/cassiopeia
 
 go 1.21.0
 
