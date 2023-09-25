@@ -11,6 +11,7 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/filecoin-project/lassie/pkg/lassie"
 	lassiehttpserver "github.com/filecoin-project/lassie/pkg/server/http"
+	"github.com/filecoin-saturn/cassiopeia/httpserver/rangehandler"
 	"github.com/ipfs/go-log/v2"
 	servertiming "github.com/mitchellh/go-server-timing"
 )
@@ -79,12 +80,17 @@ func NewHttpServer(ctx context.Context, lassie *lassie.Lassie, cfg HttpServerCon
 	}
 	cacher := middleware.NewHTTPCacheHandler(&cacheConf)
 
-	handler := servertiming.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cacher.ServeHTTP(w, r, func(w http.ResponseWriter, r *http.Request) error {
-			mux.ServeHTTP(w, r)
-			return nil
-		})
-	}), nil)
+	handler := servertiming.Middleware(
+		rangehandler.HandleRanges(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				cacher.ServeHTTP(w, r, func(w http.ResponseWriter, r *http.Request) error {
+					mux.ServeHTTP(w, r)
+					return nil
+				})
+			}),
+		),
+		nil,
+	)
 
 	server := &http.Server{
 		Addr:        fmt.Sprintf(":%d", cfg.Port),
